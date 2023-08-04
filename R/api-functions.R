@@ -60,51 +60,35 @@ reserve_edi_id <- function(user_id, password, environment = c("production", "sta
 #' \dontrun{evaluate_edi_package(user_id = "samuelwright", 
 #'                               eml_file_path = "data/edi20.1.xml")}
 #' @export   
-evaluate_edi_package <- function(user_id, password, eml_file_path, environment = "staging", .max_timout = 5) {
+evaluate_edi_package <- function(user_id, password, eml_file_path, 
+                                 environment = c("production", "staging", "development"), .max_timout = 5) {
+  environment <- match.arg(environment) 
+  
   # Select package environment 
-  base_url <- dplyr::case_when(environment == "staging" ~ "https://pasta-s.lternet.edu/package/",
-                               environment == "development" ~ "https://pasta-d.lternet.edu/package/",
-                               environment == "production" ~ "https://pasta.lternet.edu/package/")
+  base_url <- as.character(BASE_URLS[environment])
   
   # post package to EDI for evaluation 
   response <- httr::POST(
-    url = paste0(base_url, "evaluate/eml"),
+    url = httr::modify_url(base_url, path = "package/evaluate/eml"),
     config = httr::authenticate(paste0('uid=', user_id, ",o=EDI", ',dc=edirepository,dc=org'), password),
     body = httr::upload_file(eml_file_path)
   )
   
-  if (response$status_code == "202") {
+  if (identical(response$status_code, 202L)) {
     # pull transaction id from response content 
     transaction_id <- httr::content(response, as = 'text', encoding = 'UTF-8')
     
-    timeout_in_seconds <- .max_timout * 60
-    sleep_time <- 2 # initial sleep
-    while(TRUE){ # Loop through a few times to give EDI time to evaluate package 
-      Sys.sleep(sleep_time) 
-      # use transaction id to read evaluation report
-      response<- httr::GET(
-        url = paste0(base_url, "evaluate/report/eml/", transaction_id),
-        config = httr::authenticate(paste0('uid=', user_id, ",o=EDI", ',dc=edirepository,dc=org'), password)
-      )
-      
-      if (response$status_code == "200") {
-        # use generate_report_df() function defined above to parse transaction_response 
-        # content into a report_df table 
-        report_df <- generate_report_df(response)
-        assign("report_df", report_df, envir = .GlobalEnv) # why not return this ?
-        cli::cli_alert_info("Please check for errors in the report_df in .GlobalEnv")
-        return(TRUE)
-      }
-      
-      if(sleep_time > timeout_in_seconds) {
-        cli::cli_abort(c(
-          "Request Timed Out", 
-          "x" = "check to make sure inputs are valid and try again, if correct try increasong {.var .max_timeout}."
-        ))
-      }
-      
-      sleep_time = sleep_time * 2 # next time around wait twice as long
-    }
+    response <- poll_endpoint_at_dynamic_interval(
+      endpoint = httr::modify_url(base_url,path =  glue::glue("package/evaluate/report/eml/{transaction_id}")), 
+      user_id = user_id, 
+      password = password, 
+      verbose = TRUE
+    )
+    
+    report_df <- generate_report_df(response)
+    assign("report_df", report_df, envir = .GlobalEnv) # why not return this ?
+    cli::cli_alert_info("Please check for errors in the report_df in .GlobalEnv")
+    
   } else {
     cli::cli_abort(c(
       "Failed to evaluate EDI package", 
@@ -306,4 +290,42 @@ generate_report_df <- function(response) {
     print(report)
   }
   return(report_df)
+}
+
+
+poll_endpoint_at_fixed_interval <- function(endpoint, seconds) {
+  
+}
+
+#' Poll Endpoint at Dynamic Interval
+#' @param endpoint to poll
+#' @param user_id user id for auth
+#' @param password password for auth
+#' @param init_sleep the sleep in seconds on first iteration
+#' @param grow_by the multiple to grow init_sleep and subsequent sleep amount by
+#' @keywords internal
+poll_endpoint_at_dynamic_interval <- function(endpoint, user_id, password, init_sleep = 2, grow_by = 2, verbose = FALSE) {
+  sleep_time <- init_sleep
+  while(TRUE){ # Loop through a few times to give EDI time to evaluate package
+    if(verbose) {
+      cli::cli_alert_info("polling upload progress on {endpoint}, attempt number: {sleep_time/grow_by}")
+    }
+    Sys.sleep(sleep_time) 
+    response<- httr::GET(
+      url = endpoint,
+      config = httr::authenticate(paste0('uid=', user_id, ",o=EDI", ',dc=edirepository,dc=org'), password)
+    )
+    if (identical(response$status_code, 200L)) {
+      return(response)
+    }
+    
+    if(sleep_time > timeout_in_seconds) {
+      cli::cli_abort(c(
+        "Request Timed Out", 
+        "x" = "check to make sure inputs are valid and try again, if correct try increasong {.var .max_timeout}."
+      ))
+    }
+    
+    sleep_time = sleep_time * grow_by # next time around wait twice as long
+  }
 }

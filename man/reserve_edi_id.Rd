@@ -4,7 +4,11 @@
 \alias{reserve_edi_id}
 \title{Reserve EDI Data Package Identifier}
 \usage{
-reserve_edi_id(user_id, password, environment = "production")
+reserve_edi_id(
+  user_id,
+  password,
+  environment = c("production", "staging", "development")
+)
 }
 \arguments{
 \item{user_id}{EDI data portal user ID. Create an account an
