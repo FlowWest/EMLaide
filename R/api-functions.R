@@ -16,19 +16,17 @@
 reserve_edi_id <- function(user_id, password, environment = c("production", "staging", "development")) {
   environment <- match.arg(environment)
   
-  base_url <- dplyr::case_when(environment == "staging" ~ "https://pasta-s.lternet.edu/package/reservations/eml/edi",
-                               environment == "development" ~ "https://pasta-d.lternet.edu/package/reservations/eml/edi",
-                               environment == "production" ~ "https://pasta.lternet.edu/package/reservations/eml/edi")
+  base_url <- as.character(BASE_URLS[environment])
+  
   response <-httr::POST(
-    url = base_url,
+    url = httr::modify_url(base_url, path = "package/reservations/eml/edi"),
     config = httr::authenticate(paste0("uid=", user_id, ",o=EDI", ",dc=edirepository,dc=org"), password)
   )
-  if (response$status_code == "201") {
+  if (identical(response$status_code, 201L)) {
     edi_number <- httr::content(response, as = "text", encoding = "UTF-8")
     cli::cli_alert_success("edi number: 'edi.{edi_number}.1' has been reserved.")
     invisible(paste0("edi.", edi_number, ".1", sep = ""))
   } else {
-    
     cli::cli_abort(c(
       "Failed to reserve an EDI number under {.var environment} = {environment}", 
       "x" = "response returned status code `{response$status_code}` with message {httr::content(response)}"
@@ -81,8 +79,10 @@ evaluate_edi_package <- function(user_id, password, eml_file_path,
     response <- poll_endpoint_at_dynamic_interval(
       endpoint = httr::modify_url(base_url,path =  glue::glue("package/evaluate/report/eml/{transaction_id}")), 
       user_id = user_id, 
-      password = password, 
-      verbose = TRUE
+      password = password,
+      time_out_seconds = .max_timout * 60,
+      verbose = TRUE, 
+      
     )
     
     report_df <- generate_report_df(response)
@@ -304,7 +304,8 @@ poll_endpoint_at_fixed_interval <- function(endpoint, seconds) {
 #' @param init_sleep the sleep in seconds on first iteration
 #' @param grow_by the multiple to grow init_sleep and subsequent sleep amount by
 #' @keywords internal
-poll_endpoint_at_dynamic_interval <- function(endpoint, user_id, password, init_sleep = 2, grow_by = 2, verbose = FALSE) {
+poll_endpoint_at_dynamic_interval <- function(endpoint, user_id, password, time_out_seconds,
+                                              init_sleep = 2, grow_by = 2, verbose = FALSE) {
   sleep_time <- init_sleep
   while(TRUE){ # Loop through a few times to give EDI time to evaluate package
     if(verbose) {
