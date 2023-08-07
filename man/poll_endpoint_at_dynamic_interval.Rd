@@ -8,13 +8,14 @@ poll_endpoint_at_dynamic_interval(
   endpoint,
   user_id,
   password,
+  time_out_seconds,
   init_sleep = 2,
   grow_by = 2,
   verbose = FALSE
 )
 }
 \arguments{
-\item{endpoint}{to poll}
+\item{endpoint}{endpoint to poll}
 
 \item{user_id}{user id for auth}
 
@@ -22,7 +23,7 @@ poll_endpoint_at_dynamic_interval(
 
 \item{init_sleep}{the sleep in seconds on first iteration}
 
-\item{grow_by}{the multiple to grow init_sleep and subsequent sleep amount by}
+\item{grow_by}{the multiple to grow init_sleep and subsequent sleep amounts by}
 }
 \description{
 Poll Endpoint at Dynamic Interval

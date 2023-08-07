@@ -9,7 +9,7 @@ upload_edi_package(
   password,
   eml_file_path,
   environment = "production",
-  package_size = "small"
+  .max_timeout = 5
 )
 }
 \arguments{

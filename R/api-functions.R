@@ -117,72 +117,77 @@ evaluate_edi_package <- function(user_id, password, eml_file_path,
 #'                             eml_file_path = "data/edi20.1.xml")}
 #' @export   
 
-upload_edi_package <- function(user_id, password, eml_file_path, environment = "production", package_size = "small") {
-  sleep_time <- switch(package_size,
-                       "small" = 5,
-                       "medium" = 15,
-                       "large" = 25)
+upload_edi_package <- function(user_id, password, eml_file_path, environment = "production", 
+                               .max_timeout = 5) {
+  
+  base_url <- as.character(BASE_URLS[environment])
   # Select package environment& define 
-  base_url <- dplyr::case_when(environment == "staging" ~ "https://pasta-s.lternet.edu/package/",
-                               environment == "development" ~ "https://pasta-d.lternet.edu/package/",
-                               environment == "production" ~ "https://pasta.lternet.edu/package/")
+  
   # Define scope (edi) and identifier (package number) and revision
   #scope <- unlist(strsplit(eml_file_path, "\\."))[1]
   scope <- "edi"
   identifier <- unlist(strsplit(eml_file_path, "\\."))[2]
   revision <- unlist(strsplit(eml_file_path, "\\."))[3]
+  
   # post package to EDI for upload 
   response <- httr::POST(
-    url = paste0(base_url, "eml/"),
+    url = httr::modify_url(base_url, path = "package/eml/"),
     config = httr::authenticate(paste0('uid=', user_id, ",o=EDI", ',dc=edirepository,dc=org'), password),
     body = httr::upload_file(eml_file_path)
   )
   
-  if (response$status_code == "202") {
-    Sys.sleep(sleep_time) 
+  if (identical(response$status_code, 202L)) {
+    
     transaction_id <- httr::content(response, as = 'text', encoding = 'UTF-8')
-    check_error <- httr::GET(url = paste0(base_url, "error/eml/", transaction_id), 
-                             config = httr::authenticate(paste0('uid=', user_id, ",o=EDI", ',dc=edirepository,dc=org'), password))
-    # If check error = 200 it means the package did not post, use the message to understand why 
-    message <- substr(httr::content(check_error, as = 'text', encoding = 'UTF-8'), 1, 64)
-    # the data package already exists in the staging area - first if statement
-    if (message == "Attempting to insert a data package that already exists in PASTA") {
-      stop("Attempting to insert a data package that already exists in PASTA. Please reserve a different identifier or update the existing package using update_edi_package()")
-    }
-    # the EML is not valid - we must view errors in error report dataframe
-    else if (check_error$status_code == "200" & 
-             message != "Attempting to insert a data package that already exists in PASTA") { 
-      report_df <- generate_report_df(check_error)
-      message("EML not valid. Please fix errors in report dataframe or if report dataframe comes back empty please try to evaluate_edi_package().")
-     stop(report_df)
-    } else {
-      iter <- 0
-      max_iter <- 20
-      while(TRUE){ # Loop through a few times to give EDI time to upload package
-        Sys.sleep(sleep_time)
-        # If check_error does not equal 200, run the check upload lines below to view upload
-        check_upload <- httr::GET(url = paste0(base_url, 
-                                               "report/eml/", 
-                                               scope, "/", identifier, "/", revision), 
-                                  config = httr::authenticate(paste0('uid=', user_id, ",o=EDI", ',dc=edirepository,dc=org'), password))
-        
-        if (check_upload$status_code == "200") {
-          print("Your data package posted to EDI. Please check EDI portal to confirm")
-          break
-        }
-        # Stop loop if iterating through more than 5 times 
-        else if(iter > max_iter) {
-          stop("Request timed out, check that your inputs are all valid, rerun evaluate_edi_package(), and try again")
-        }
-        iter <- iter + 1
+    
+    # upload post success but errors can still happen in the upload process, check for them there
+    check_error <- httr::GET(
+      url = httr::modify_url(base_url, path = glue::glue("package/error/eml/{transaction_id}")), 
+      config = httr::authenticate(paste0('uid=', user_id, ",o=EDI", ',dc=edirepository,dc=org'), password)
+    )
+    # If check error == 200 the check for error was successful  
+    # if check error == 404 then there is no error in this upload
+    # https://pasta.lternet.edu/package/docs/api#GET%20:%20/error/eml/{transaction}
+    if (identical(check_error$status_code, 200L)) {
+      
+      message <- httr::content(check_error, encoding = "utf-8")
+      # the data package already exists in the staging area - first if statement
+      if (startsWith(message, "Attempting to insert a data package that already exists in PASTA")) {
+        cli::cli_abort(c(
+          "uploading process failed", 
+          "x" = message
+        ))
+      } else { # this should be merged with the above 
+        cli::cli_abort(c(
+          "uploading process failed", 
+          "x" = message
+        ))
       }
-    }
-    # Adds error handling message for 505, 405 & other errors that come from bad initial response 
+    } else if (identical(check_error$status_code, 404L)) {
+      poll_response <- poll_endpoint_at_dynamic_interval(
+        endpoint = httr::modify_url(base_url, path = "package/report/eml"), 
+        user_id = user_id, 
+        password = password, 
+        time_out_seconds = .max_timeout * 60, 
+        verbose = TRUE
+      )
+      
+      if (identical(poll_response$status_code, 200L)) {
+        cli::cli_alert_success("your package succesfully posted to EDI!")
+      } else {
+        resp_message <- httr::content(poll_response, encoding = "utf-8")
+        cli::cli_abort(c(
+          "in upload process", 
+          "x" = "api returned with message {resp_message}"
+        ))
+      }
+
   } else {
-    message("Failed to upload EDI package. Status code: ", response$status_code, ".
-           Please check that you entered a valid username, password, and XML document.
-           See full response below.")
-    stop(response)
+    resp_message <- httr::content(response, encoding = "utf-8")
+    cli::cli_abort(c(
+      "in upload POST", 
+      "x" = "api returned with message {resp_message}"
+    ))
   }
 }
 
@@ -298,11 +303,11 @@ poll_endpoint_at_fixed_interval <- function(endpoint, seconds) {
 }
 
 #' Poll Endpoint at Dynamic Interval
-#' @param endpoint to poll
+#' @param endpoint endpoint to poll
 #' @param user_id user id for auth
 #' @param password password for auth
 #' @param init_sleep the sleep in seconds on first iteration
-#' @param grow_by the multiple to grow init_sleep and subsequent sleep amount by
+#' @param grow_by the multiple to grow init_sleep and subsequent sleep amounts by
 #' @keywords internal
 poll_endpoint_at_dynamic_interval <- function(endpoint, user_id, password, time_out_seconds,
                                               init_sleep = 2, grow_by = 2, verbose = FALSE) {
@@ -320,7 +325,7 @@ poll_endpoint_at_dynamic_interval <- function(endpoint, user_id, password, time_
       return(response)
     }
     
-    if(sleep_time > timeout_in_seconds) {
+    if(sleep_time > time_out_seconds) {
       cli::cli_abort(c(
         "Request Timed Out", 
         "x" = "check to make sure inputs are valid and try again, if correct try increasong {.var .max_timeout}."
@@ -330,3 +335,13 @@ poll_endpoint_at_dynamic_interval <- function(endpoint, user_id, password, time_
     sleep_time = sleep_time * grow_by # next time around wait twice as long
   }
 }
+
+
+check_transaction_error <- function(base_url, transaction_id) {
+  
+  check_error <- httr::GET(
+    url = httr::modify_url(base_url, glue::glue("package/error/eml/{transaction_id}")), 
+    config = httr::authenticate(paste0('uid=', user_id, ",o=EDI", ',dc=edirepository,dc=org'), password)
+  )
+}
+
