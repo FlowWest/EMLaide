@@ -10,7 +10,7 @@ update_edi_package(
   existing_package_identifier,
   eml_file_path,
   environment = "production",
-  package_size = "medium"
+  .max_timeout = 5
 )
 }
 \arguments{

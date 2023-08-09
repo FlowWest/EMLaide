@@ -41,7 +41,8 @@ be evaluated using the EDI congruence checker. This package returns a data frame
 package.
 }
 \details{
-For more information about the validation services see \href{https://pastaplus-core.readthedocs.io/en/latest/doc_tree/pasta_api/data_package_manager_api.html#upload-and-evaluation}{the PASTAplus docs}
+For more information about the validation services
+see \href{https://pastaplus-core.readthedocs.io/en/latest/doc_tree/pasta_api/data_package_manager_api.html#upload-and-evaluation}{the PASTAplus docs}
 }
 \examples{
 \dontrun{evaluate_edi_package(user_id = "samuelwright", 
