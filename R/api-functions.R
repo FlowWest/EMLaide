@@ -230,7 +230,8 @@ update_edi_package <- function(user_id, password, existing_package_identifier,
     Sys.sleep(2)
     transaction_id <- httr::content(response, as = "text", encoding = "UTF-8")
     
-    check_error <- httr::GET(url = paste0(base_url, "error/eml/", transaction_id), 
+    
+    check_error <- httr::GET(url = httr::modify_url(base_url, path = paste0("error/eml/", transaction_id)), 
                              config = httr::authenticate(paste0("uid=", user_id, ",o=EDI", ",dc=edirepository,dc=org"), password))
     
     # if error check response is 200 then an error was found
