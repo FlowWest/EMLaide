@@ -237,7 +237,6 @@ update_edi_package <- function(user_id, password, existing_package_identifier,
     # if error check response is 200 then an error was found
     # if error check response is 400 then an error was NOT found
     if (identical(check_error$status, 200L)) {
-      
       error_message <- httr::content(check_error, as = "text", encoding = "UTF-8")
       report_df <- generate_report_df(check_error)
       cli::cli_abort(c(
@@ -255,7 +254,7 @@ update_edi_package <- function(user_id, password, existing_package_identifier,
       
       if (identical(poll_response$status_code, 200L)) {
         cli::cli_alert_success("data package posted to EDI. Check EDI {environment} to confirm")
-        return()
+        return(TRUE)
       } else {
         msg <- httr::content(poll_response)
         cli::cli_abort(c(
