@@ -245,7 +245,7 @@ update_edi_package <- function(user_id, password, existing_package_identifier,
       ))
     } else if (identical(check_error$status, 404L)) { # no error found 
       poll_response <- poll_endpoint_at_dynamic_interval(
-        endpoint = httr::modify_url(base_url, path = glue::glue("package/report/eml{scope}/{identifier}/{revision}")), 
+        endpoint = httr::modify_url(base_url, path = glue::glue("package/report/eml/{scope}/{identifier}/{revision}")), 
         user_id = user_id, 
         password = pasword,
         time_out_seconds = .max_timeout * 60, 
