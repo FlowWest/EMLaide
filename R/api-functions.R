@@ -253,7 +253,7 @@ update_edi_package <- function(user_id, password, existing_package_identifier,
       )
       
       if (identical(poll_response$status_code, 200L)) {
-        cli::cli_alert_success("data package poasted to EDI. Check EDI {environment} to confirm")
+        cli::cli_alert_success("data package posted to EDI. Check EDI {environment} to confirm")
         return()
       } else {
         msg <- httr::content(poll_response)
