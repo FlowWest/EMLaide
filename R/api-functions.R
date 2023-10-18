@@ -243,7 +243,7 @@ update_edi_package <- function(user_id, password, existing_package_identifier,
         "during the upload process", 
         "x" = "api responded with the following: {error_message}"
       ))
-    } else if (identical(check_error$status, 400L)) { # no error found 
+    } else if (identical(check_error$status, 404L)) { # no error found 
       poll_response <- poll_endpoint_at_dynamic_interval(
         endpoint = httr::modify_url(base_url, path = glue::glue("package/report/eml{scope}/{identifier}/{revision}")), 
         user_id = user_id, 
