@@ -4,7 +4,11 @@
 \alias{reserve_edi_id}
 \title{Reserve EDI Data Package Identifier}
 \usage{
-reserve_edi_id(user_id, password, environment = "production")
+reserve_edi_id(
+  user_id,
+  password,
+  environment = c("production", "staging", "development")
+)
 }
 \arguments{
 \item{user_id}{EDI data portal user ID. Create an account an
@@ -12,7 +16,8 @@ EDI \href{https://portal.edirepository.org/nis/login.jsp}{here}}
 
 \item{password}{EDI data portal user password}
 
-\item{environment}{EDI portal environment to run command in. Can be: "production" - environment for publishing to EDI ,
+\item{environment}{EDI portal environment to run command in.
+Can be: "production" - environment for publishing to EDI ,
 "staging" - environment to test upload and rendering of new environment, "development"}
 }
 \value{
@@ -22,7 +27,8 @@ This function returns a edi identifier number.
 This package reserves and returns a unique EDI number.
 }
 \details{
-For more information about the identifier reservation services see \href{https://pastaplus-core.readthedocs.io/en/latest/doc_tree/pasta_api/data_package_manager_api.html#reservations}{the PASTAplus docs}
+For more information about the identifier reservation services
+see \href{https://pastaplus-core.readthedocs.io/en/latest/doc_tree/pasta_api/data_package_manager_api.html#reservations}{the PASTAplus docs}
 }
 \examples{
 \dontrun{

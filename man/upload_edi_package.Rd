@@ -8,7 +8,8 @@ upload_edi_package(
   user_id,
   password,
   eml_file_path,
-  environment = "production"
+  environment = "production",
+  .max_timeout = 5
 )
 }
 \arguments{
@@ -31,7 +32,8 @@ This function takes in authentication info for EDI and an EML file to
 be evaluated uploaded to EDI.
 }
 \details{
-For more information about the validation services see \href{https://pastaplus-core.readthedocs.io/en/latest/doc_tree/pasta_api/data_package_manager_api.html#upload-and-evaluation}{the PASTAplus docs}
+For more information about the validation services see
+\href{https://pastaplus-core.readthedocs.io/en/latest/doc_tree/pasta_api/data_package_manager_api.html#upload-and-evaluation}{the PASTAplus docs}
 }
 \examples{
 \dontrun{upload_edi_package(user_id = "samuelwright", 

@@ -7,3 +7,4 @@ work-flow.R
 eml.xml
 .Renviron
 inst/doc
+data-raw/test-files

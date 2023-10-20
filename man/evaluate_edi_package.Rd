@@ -4,7 +4,13 @@
 \alias{evaluate_edi_package}
 \title{Validate EDI Data Package}
 \usage{
-evaluate_edi_package(user_id, password, eml_file_path, environment = "staging")
+evaluate_edi_package(
+  user_id,
+  password,
+  eml_file_path,
+  environment = c("production", "staging", "development"),
+  .max_timout = 5
+)
 }
 \arguments{
 \item{user_id}{EDI data portal user ID. Create an account an
@@ -17,6 +23,8 @@ EDI \href{https://portal.edirepository.org/nis/login.jsp}{here}}
 
 \item{environment}{EDI portal environment to run command in. Can be: "production" - environment for publishing to EDI ,
 "staging" - environment to test upload and rendering of new environment, "development"}
+
+\item{.max_timeout}{the maximim number of minutes to wait before timing out on xml upload}
 }
 \value{
 This package returns a data frame that contains the status of the
@@ -33,7 +41,8 @@ be evaluated using the EDI congruence checker. This package returns a data frame
 package.
 }
 \details{
-For more information about the validation services see \href{https://pastaplus-core.readthedocs.io/en/latest/doc_tree/pasta_api/data_package_manager_api.html#upload-and-evaluation}{the PASTAplus docs}
+For more information about the validation services
+see \href{https://pastaplus-core.readthedocs.io/en/latest/doc_tree/pasta_api/data_package_manager_api.html#upload-and-evaluation}{the PASTAplus docs}
 }
 \examples{
 \dontrun{evaluate_edi_package(user_id = "samuelwright", 
