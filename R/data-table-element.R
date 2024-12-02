@@ -66,7 +66,10 @@ create_datatable <- function(filepath,
   }
   attribute_list$attribute <- purrr::pmap(attribute_table, attributes_and_codes)
   
+  print(filepath)
   physical <- create_physical(file_path = filepath, data_url = datatable_url)
+  file_name <- basename(filepath)
+  # unzipped_file_name <- sub("\\.zip$", ".csv", file_name)
   dataTable <- list(entityName = basename(filepath),
                                  entityDescription = datatable_description,
                                  physical = physical,

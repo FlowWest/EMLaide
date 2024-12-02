@@ -38,6 +38,12 @@ create_physical <- function(file_path,
   object_name <- paste(utils::tail(file_path_breaks, n = 1))
   
   if (!is.null(data_url)){
+    # data_url <- "https://raw.githubusercontent.com/SRJPE/jpe-feather-edi/feather_20241001/data/feather_catch.zip"
+    # download.file(data_url, destfile = "temp_file.zip", method = "curl", quiet = TRUE)
+    # object_size <- as.character(file.size("temp_file.zip"))
+    # authentication <- paste(tools::md5sum("temp_file.zip")) 
+    # unlink("temp_file.zip")
+    
     download.file(data_url, destfile = "temp_file.csv", method = "curl", quiet = TRUE)
     object_size <- as.character(file.size("temp_file.csv"))
     authentication <- paste(tools::md5sum("temp_file.csv")) 
