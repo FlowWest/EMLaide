@@ -57,13 +57,13 @@ create_other_entity <- function(file_name, file_description, file_type, physical
 #' }
 #' @export
 add_other_entity <- function(parent_element, other_entity_metadata) {
-  other_entity <- purrr::pmap(other_entity_metadata, create_other_entity)
-  parent_element$otherEntity <- other_entity
-  # parent_element$otherEntity <- create_other_entity(file_name = other_entity_metadata$file_name, 
-  #                                                   file_description = other_entity_metadata$file_description, 
-  #                                                   file_type = other_entity_metadata$file_type, 
-  #                                                   physical = other_entity_metadata$physical
-  # )
+  # other_entity <- purrr::pmap(other_entity_metadata, create_other_entity)
+  # parent_element$otherEntity <- other_entity
+  parent_element$otherEntity <- create_other_entity(file_name = other_entity_metadata$file_name,
+                                                    file_description = other_entity_metadata$file_description,
+                                                    file_type = other_entity_metadata$file_type,
+                                                    physical = other_entity_metadata$physical
+  )
   # data_tables <- purrr::pmap(datatable_metadata, create_datatable)))
   return(parent_element)
 }
