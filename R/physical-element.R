@@ -38,12 +38,23 @@ create_physical <- function(file_path,
   object_name <- paste(utils::tail(file_path_breaks, n = 1))
   
   if (!is.null(data_url)){
-    download.file(data_url, destfile = "temp_file.csv", method = "curl", quiet = TRUE)
-    object_size <- as.character(file.size("temp_file.csv"))
-    authentication <- paste(tools::md5sum("temp_file.csv")) 
-    unlink("temp_file.csv")
-
-  } else {
+    if (grepl("\\.zip$", data_url, ignore.case = TRUE)) {
+      # Download the zip file
+      download.file(data_url, destfile = "temp_file.zip", method = "curl", quiet = TRUE)
+      object_size <- as.character(file.size("temp_file.zip"))
+      authentication <- paste(tools::md5sum("temp_file.zip"))
+      unlink("temp_file.zip")
+    }
+    else if(grepl("\\.csv$", data_url, ignore.case=TRUE)){
+      download.file(data_url, destfile = "temp_file.csv", method = "curl", quiet = TRUE)
+      object_size <- as.character(file.size("temp_file.csv"))
+      authentication <- paste(tools::md5sum("temp_file.csv")) 
+      unlink("temp_file.csv")      
+    }
+    else{
+      warning("Invalid file type. Ensure the file object has a .zip or .csv extension before proceeding.")
+    }
+  }else {
     object_size <- paste(file.size(file_path))
     authentication <- paste(tools::md5sum(file_path))  
   }
