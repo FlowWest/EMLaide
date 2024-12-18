@@ -332,7 +332,8 @@ poll_endpoint_at_dynamic_interval <- function(endpoint, user_id, password, time_
     if (sleep_time > time_out_seconds) {
       cli::cli_abort(c(
         "Request Timed Out", 
-        "x" = "check to make sure inputs are valid and try again, if correct try increasong {.var .max_timeout}."
+        "x" = "check to make sure inputs are valid and try again, if correct try increasong {.var .max_timeout}.",
+        "i" = "Error from API with status code {response$status_code} --- {httr::content(response)}"
       ))
     }
     
