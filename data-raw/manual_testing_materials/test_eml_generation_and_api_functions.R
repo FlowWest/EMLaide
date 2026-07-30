@@ -51,8 +51,8 @@ abstract_docx <- system.file("extdata", "Banet-Example", "metadata","abstract.do
 methods_docx <- system.file("extdata", "Banet-Example", "metadata", "methods.docx", 
                             package = "EMLaide", mustWork = TRUE)
 
-# Rerun and replace set edi number below 
-# edi_number <- reserve_edi_id(user_id = Sys.getenv("user_id"), password = Sys.getenv("password"), environment = "staging")
+# Rerun and replace set edi number below
+# edi_number <- reserve_edi_id(api_key = Sys.getenv("EDI_API_KEY"), environment = "staging")
 edi_number <- "edi.1046.1"
 
 # generate master list of metadata elements 
@@ -92,24 +92,19 @@ eml <- list(packageId = edi_number,
 EML::write_eml(eml, paste0("data-raw/manual_testing_materials/", edi_number, ".xml"))
 EML::eml_validate(paste0("data-raw/manual_testing_materials/", edi_number, ".xml"))
 
-# Test that it passes EDIs evaluation criteria 
-evaluate_edi_package(user_id = Sys.getenv("user_id"), 
-                     password = Sys.getenv("password"),
-                     eml_file_path = paste0("data-raw/manual_testing_materials/", edi_number, ".xml"), 
+# Test that it passes EDIs evaluation criteria
+evaluate_edi_package(api_key = Sys.getenv("EDI_API_KEY"),
+                     eml_file_path = paste0("data-raw/manual_testing_materials/", edi_number, ".xml"),
                      environment = "staging")
 
-# Upload package 
-upload_edi_package(user_id = Sys.getenv("user_id"), 
-                     password = Sys.getenv("password"),
-                     eml_file_path = paste0("data-raw/manual_testing_materials/", edi_number, ".xml"), 
-                     environment = "staging",
-                     package_size = "medium")
+# Upload package
+upload_edi_package(api_key = Sys.getenv("EDI_API_KEY"),
+                   eml_file_path = paste0("data-raw/manual_testing_materials/", edi_number, ".xml"),
+                   environment = "staging")
 
 past_version <- paste0("edi.", unlist(strsplit(edi_number, "\\."))[2], ".", as.character(as.numeric(unlist(strsplit(edi_number, "\\."))[3]) - 1))
-# update edi package 
-update_edi_package(user_id = Sys.getenv("user_id"), 
-                   password = Sys.getenv("password"),
+# update edi package
+update_edi_package(api_key = Sys.getenv("EDI_API_KEY"),
                    eml_file_path = paste0("data-raw/manual_testing_materials/", edi_number, ".xml"),
-                   package_size = "medium", 
-                   existing_package_identifier = past_version, 
+                   existing_package_identifier = past_version,
                    environment = "staging")
