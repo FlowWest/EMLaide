@@ -185,7 +185,7 @@ upload_edi_package <- function(api_key, eml_file_path, environment = "production
 #' @description This function takes in authentication info for EDI, a package number, and an updated EML file to
 #' updated an existing package on EDI.
 #' @param api_key EDI API access key. Generate one via the EDI Data Portal under
-#' Profile Menu > Access Keys. See \href{https://edirepository.org/resources/working-with-access-keys}{here} for details.
+#' Profile Menu -> Access Keys. See \href{https://edirepository.org/resources/working-with-access-keys}{here} for details.
 #' @param environment EDI portal environment to run command in. Can be: "production" - environment for publishing to EDI ,
 #' "staging" - environment to test upload and rendering of new environment, "development"
 #' @param existing_package_identifier The current edi number of the package that you are trying to update.(ex: "edi.101.1")
