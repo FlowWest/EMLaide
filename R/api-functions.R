@@ -29,7 +29,7 @@ reserve_edi_id <- function(api_key, environment = c("production", "staging", "de
   } else {
     cli::cli_abort(c(
       "Failed to reserve an EDI number under {.var environment} = {environment}",
-      "x" = "response returned status code `{response$status_code}` with message {httr::content(response)}"
+      "x" = "response returned status code `{response$status_code}` with message {httr::content(response, as = 'text', encoding = 'UTF-8')}"
     ))
 
   }
@@ -90,7 +90,7 @@ evaluate_edi_package <- function(api_key, eml_file_path,
   } else {
     cli::cli_abort(c(
       "Failed to evaluate EDI package",
-      "x" = "status code: {response$status_code} and message {httr::content(response)}"
+      "x" = "status code: {response$status_code} and message {httr::content(response, as = 'text', encoding = 'UTF-8')}"
     ))
   }
 }
@@ -138,7 +138,7 @@ upload_edi_package <- function(api_key, eml_file_path, environment = "production
     # https://pasta.lternet.edu/package/docs/api#GET%20:%20/error/eml/{transaction}
     if (identical(check_error$status_code, 200L)) {
 
-      message <- httr::content(check_error, encoding = "utf-8")
+      message <- httr::content(check_error, as = "text", encoding = "UTF-8")
       # the data package already exists in the staging area - first if statement
       if (startsWith(message, "Attempting to insert a data package that already exists in PASTA")) {
         cli::cli_abort(c(
@@ -162,7 +162,7 @@ upload_edi_package <- function(api_key, eml_file_path, environment = "production
       if (identical(poll_response$status_code, 200L)) {
         cli::cli_alert_success("your package succesfully posted to EDI!")
       } else {
-        resp_message <- httr::content(poll_response, encoding = "utf-8")
+        resp_message <- httr::content(poll_response, as = "text", encoding = "UTF-8")
         cli::cli_abort(c(
           "while checking upload process",
           "x" = "api returned with message {resp_message}"
@@ -170,7 +170,7 @@ upload_edi_package <- function(api_key, eml_file_path, environment = "production
       }
 
     } else {
-      resp_message <- httr::content(response, encoding = "utf-8")
+      resp_message <- httr::content(response, as = "text", encoding = "UTF-8")
       cli::cli_abort(c(
         "in upload POST",
         "x" = "api returned with message {resp_message}"
@@ -244,7 +244,7 @@ update_edi_package <- function(api_key, existing_package_identifier,
         cli::cli_alert_success("data package posted to EDI. Check EDI {environment} to confirm")
         return(TRUE)
       } else {
-        msg <- httr::content(poll_response)
+        msg <- httr::content(poll_response, as = "text", encoding = "UTF-8")
         cli::cli_abort(c(
           "while polling for upload progress",
           "x" = "api responded with the following: {msg}"
@@ -260,7 +260,7 @@ update_edi_package <- function(api_key, existing_package_identifier,
     }
     # Adds error handling message for 505, 405 & other errors that come from bad initial response
   } else {
-    msg <- httr::content(response, encoding = "UTF-8")
+    msg <- httr::content(response, as = "text", encoding = "UTF-8")
     cli::cli_abort(c(
       "while attempting to upload",
       "x" = "api responded with the following: {msg}"
