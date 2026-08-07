@@ -36,42 +36,6 @@ reserve_edi_id <- function(api_key, environment = c("production", "staging", "de
   }
 }
 
-#' Reserve EDI Data Package Identifier with Username and Password
-#' @description This package reserves and returns a unique EDI number using EDI username and password.
-#' @param username EDI username.
-#' @param password EDI password.
-#' @param environment EDI portal environment to run command in.
-#' Can be: "production" - environment for publishing to EDI ,
-#' "staging" - environment to test upload and rendering of new environment, "development"
-#' @details For more information about the identifier reservation services
-#' see \href{https://pastaplus-core.readthedocs.io/en/latest/doc_tree/pasta_api/data_package_manager_api.html#reservations}{the PASTAplus docs}
-#' @return This function returns a edi identifier number.
-#' @examples
-#' \dontrun{
-#' reserve_edi_id_user(username = "myuser", password = Sys.getenv("EDI_PASSWORD"))}
-#' @export
-
-reserve_edi_id_staging <- function(username, password, environment = c("staging", "development")) {
-  environment <- match.arg(environment)
-
-  base_url <- as.character(BASE_URLS[environment])
-
-  response <- httr::POST(
-    url = httr::modify_url(base_url, path = "package/reservations/eml/edi"),
-    httr::authenticate(username, password)
-  )
-  if (identical(response$status_code, 201L)) {
-    edi_number <- httr::content(response, as = "text", encoding = "UTF-8")
-    cli::cli_alert_success("edi number: \"edi.{edi_number}.1\" has been reserved.")
-    invisible(paste0("edi.", edi_number, ".1", sep = ""))
-  } else {
-    cli::cli_abort(c(
-      "Failed to reserve an EDI number under {.var environment} = {environment}",
-      "x" = "response returned status code `{response$status_code}` with message {httr::content(response, as = 'text', encoding = 'UTF-8')}"
-    ))
-  }
-}
-
 # Evaluate EDI Data package -------------------------------------------------------
 #' Validate EDI Data Package
 #' @description This function takes in authentication info for EDI and an EML file to
