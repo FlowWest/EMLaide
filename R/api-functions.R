@@ -1,8 +1,9 @@
 # Data package identifier reservation ------------------------------------------
 #' Reserve EDI Data Package Identifier
 #' @description This package reserves and returns a unique EDI number.
-#' @param api_key EDI API access key. Generate one via the EDI Data Portal under
-#' Profile Menu > Access Keys. See \href{https://edirepository.org/resources/working-with-access-keys}{here} for details.
+#' @param api_key EDI API access key for the target environment. Keys are environment-specific and must be generated
+#' from the matching portal: \href{https://auth.edirepository.org/}{production},
+#' \href{https://auth-s.edirepository.org/}{staging}, or \href{https://auth-d.edirepository.org/}{development}.
 #' @param environment EDI portal environment to run command in.
 #' Can be: "production" - environment for publishing to EDI ,
 #' "staging" - environment to test upload and rendering of new environment, "development"
@@ -35,13 +36,50 @@ reserve_edi_id <- function(api_key, environment = c("production", "staging", "de
   }
 }
 
+#' Reserve EDI Data Package Identifier with Username and Password
+#' @description This package reserves and returns a unique EDI number using EDI username and password.
+#' @param username EDI username.
+#' @param password EDI password.
+#' @param environment EDI portal environment to run command in.
+#' Can be: "production" - environment for publishing to EDI ,
+#' "staging" - environment to test upload and rendering of new environment, "development"
+#' @details For more information about the identifier reservation services
+#' see \href{https://pastaplus-core.readthedocs.io/en/latest/doc_tree/pasta_api/data_package_manager_api.html#reservations}{the PASTAplus docs}
+#' @return This function returns a edi identifier number.
+#' @examples
+#' \dontrun{
+#' reserve_edi_id_user(username = "myuser", password = Sys.getenv("EDI_PASSWORD"))}
+#' @export
+
+reserve_edi_id_staging <- function(username, password, environment = c("staging", "development")) {
+  environment <- match.arg(environment)
+
+  base_url <- as.character(BASE_URLS[environment])
+
+  response <- httr::POST(
+    url = httr::modify_url(base_url, path = "package/reservations/eml/edi"),
+    httr::authenticate(username, password)
+  )
+  if (identical(response$status_code, 201L)) {
+    edi_number <- httr::content(response, as = "text", encoding = "UTF-8")
+    cli::cli_alert_success("edi number: \"edi.{edi_number}.1\" has been reserved.")
+    invisible(paste0("edi.", edi_number, ".1", sep = ""))
+  } else {
+    cli::cli_abort(c(
+      "Failed to reserve an EDI number under {.var environment} = {environment}",
+      "x" = "response returned status code `{response$status_code}` with message {httr::content(response, as = 'text', encoding = 'UTF-8')}"
+    ))
+  }
+}
+
 # Evaluate EDI Data package -------------------------------------------------------
 #' Validate EDI Data Package
 #' @description This function takes in authentication info for EDI and an EML file to
 #' be evaluated using the EDI congruence checker. This package returns a data frame that contains the status of the
 #' package.
-#' @param api_key EDI API access key. Generate one via the EDI Data Portal under
-#' Profile Menu > Access Keys. See \href{https://edirepository.org/resources/working-with-access-keys}{here} for details.
+#' @param api_key EDI API access key for the target environment. Keys are environment-specific and must be generated
+#' from the matching portal: \href{https://auth.edirepository.org/}{production},
+#' \href{https://auth-s.edirepository.org/}{staging}, or \href{https://auth-d.edirepository.org/}{development}.
 #' @param environment EDI portal environment to run command in. Can be: "production" - environment for publishing to EDI ,
 #' "staging" - environment to test upload and rendering of new environment, "development"
 #' @param eml_file_path The file path to the EML metadata document that you wish to evaluate.
@@ -101,8 +139,9 @@ evaluate_edi_package <- function(api_key, eml_file_path,
 #' Upload EDI Data Package
 #' @description This function takes in authentication info for EDI and an EML file to
 #' be evaluated uploaded to EDI.
-#' @param api_key EDI API access key. Generate one via the EDI Data Portal under
-#' Profile Menu > Access Keys. See \href{https://edirepository.org/resources/working-with-access-keys}{here} for details.
+#' @param api_key EDI API access key for the target environment. Keys are environment-specific and must be generated
+#' from the matching portal: \href{https://auth.edirepository.org/}{production},
+#' \href{https://auth-s.edirepository.org/}{staging}, or \href{https://auth-d.edirepository.org/}{development}.
 #' @param environment EDI portal environment to run command in. Can be: "production" - environment for publishing to EDI ,
 #' "staging" - environment to test upload and rendering of new environment, "development"
 #' @param eml_file_path The file path to the EML metadata document that you wish to evaluate.
@@ -184,8 +223,9 @@ upload_edi_package <- function(api_key, eml_file_path, environment = "production
 #' Update EDI Data Package
 #' @description This function takes in authentication info for EDI, a package number, and an updated EML file to
 #' updated an existing package on EDI.
-#' @param api_key EDI API access key. Generate one via the EDI Data Portal under
-#' Profile Menu -> Access Keys. See \href{https://edirepository.org/resources/working-with-access-keys}{here} for details.
+#' @param api_key EDI API access key for the target environment. Keys are environment-specific and must be generated
+#' from the matching portal: \href{https://auth.edirepository.org/}{production},
+#' \href{https://auth-s.edirepository.org/}{staging}, or \href{https://auth-d.edirepository.org/}{development}.
 #' @param environment EDI portal environment to run command in. Can be: "production" - environment for publishing to EDI ,
 #' "staging" - environment to test upload and rendering of new environment, "development"
 #' @param existing_package_identifier The current edi number of the package that you are trying to update.(ex: "edi.101.1")
@@ -298,8 +338,9 @@ poll_endpoint_at_fixed_interval <- function(endpoint, seconds) {
 #' @param init_sleep the sleep in seconds on first iteration
 #' @param grow_by the multiple to grow init_sleep and subsequent sleep amounts by
 #' @keywords internal
-poll_endpoint_at_dynamic_interval <- function(endpoint, api_key, time_out_seconds,
-                                              init_sleep = 2, grow_by = 2, verbose = FALSE) {
+poll_endpoint_at_dynamic_interval <- function(endpoint, api_key = NULL, time_out_seconds,
+                                              init_sleep = 2, grow_by = 2, verbose = FALSE,
+                                              auth = NULL) {
   sleep_time <- init_sleep
   verbose_counter <- 0
   while (TRUE) { # Loop through a few times to give EDI time to evaluate package
@@ -309,7 +350,8 @@ poll_endpoint_at_dynamic_interval <- function(endpoint, api_key, time_out_second
     }
     Sys.sleep(sleep_time)
     response <- httr::GET(
-      url = httr::modify_url(endpoint, query = list(key = api_key))
+      url = httr::modify_url(endpoint, query = list(key = api_key)),
+      auth
     )
     if (identical(response$status_code, 200L)) {
       return(response)
